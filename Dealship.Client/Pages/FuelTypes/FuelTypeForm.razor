@@ -1,0 +1,49 @@
+﻿@page "/fueltypes/edit/{Id:int?}"
+@using Dealship.Shared
+@using Dealship.Client.Services
+@using Microsoft.AspNetCore.Components.Forms
+@inject EntityApi<FuelTypeDto, FuelTypeFormDto> Api
+@inject NavigationManager Nav
+
+<h3>@(Id is null ? "New Fuel Type" : "Edit Fuel Type")</h3>
+
+<EditForm Model="model" OnValidSubmit="Save">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <label class="form-label">Name</label>
+    <InputText class="form-control mb-3" @bind-Value="model.Name" />
+
+    <button type="submit" class="btn btn-primary me-2">Save</button>
+    <button type="button" class="btn btn-secondary" @onclick="GoBack">Cancel</button>
+</EditForm>
+
+@code
+{
+    [Parameter] public int? Id { get; set; }
+
+    // Використовуємо MUTABLE форму, а не FuelTypeDto (record)
+    private FuelTypeFormDto model = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id is int id)
+        {
+            var dto = await Api.GetByIdAsync(id);
+            if (dto is not null)
+                model.Name = dto.Name;          // заповнюємо форму
+        }
+    }
+
+    private async Task Save()
+    {
+        if (Id is int id)
+            await Api.UpdateAsync(id, model);
+        else
+            await Api.CreateAsync(model);
+
+        GoBack();
+    }
+
+    private void GoBack() => Nav.NavigateTo("/fueltypes");
+}

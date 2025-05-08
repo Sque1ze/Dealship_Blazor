@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en" data-bs-theme="auto">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dealship</title>
+
+    <!---- Bootstrap --->
+    <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/cyborg/bootstrap.min.css"
+          rel="stylesheet" id="theme">
+
+    <!---- Bootstrap Icons (опціонально для стрілок/іконок) --->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+          rel="stylesheet">
+
+    <!---- власні стилі збірки (Blazor + ваші) --->
+    <link href="Dealship.Client.styles.css" rel="stylesheet" />
+
+    <!---- невеликий кастом для splash/error --->
+    <style>
+        #splash {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: .75rem;
+            background: var(--bs-body-bg);
+            z-index: 1050;
+        }
+
+            #splash .spinner-border {
+                width: 3rem;
+                height: 3rem;
+            }
+
+        #blazor-error-ui {
+            z-index: 2000;
+            width: 100%;
+            max-width: 420px;
+        }
+    </style>
+</head>
+
+<body class="d-flex flex-column min-vh-100">
+
+    <!-- контейнер Blazor-програми -->
+    <div id="app" class="flex-fill"></div>
+
+    <!-- splash-екран -->
+    <div id="splash">
+        <img src="favicon.png" alt="Dealship" style="height:56px">
+        <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+        <span class="text-secondary">Loading…</span>
+    </div>
+
+    <!-- блок помилки -->
+    <div id="blazor-error-ui"
+         class="alert alert-danger shadow position-fixed bottom-0 start-50 translate-middle-x d-none">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        An unexpected error has occurred.
+        <a href="." class="alert-link ms-2">Reload</a>
+        <button type="button" class="btn-close ms-2" data-bs-dismiss="alert"
+                aria-label="Close"></button>
+    </div>
+
+    <!---- Boostrap bundle (Popper+JS) --->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            crossorigin="anonymous"></script>
+
+    <!---- Blazor runtime **без** автозапуску --->
+    <script src="_framework/blazor.webassembly.js" autostart="false"></script>
+
+    <!---- Єдиний запуск Blazor + обробка splash/error --->
+    <script>
+        Blazor.start()
+            .then(() => document.getElementById('splash')?.remove())
+            .catch(() => document.getElementById('blazor-error-ui')?.classList.remove('d-none'));
+
+        /* Крихітний перемикач теми (опціонально) */
+        window.toggleTheme = () => {
+            const html = document.documentElement;
+            html.dataset.bsTheme = html.dataset.bsTheme === 'dark' ? 'light' : 'dark';
+        };
+    </script>
+</body>
+</html>

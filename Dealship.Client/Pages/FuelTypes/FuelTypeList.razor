@@ -1,0 +1,76 @@
+﻿@page "/fueltypes"
+@using Dealship.Shared
+@using Dealship.Client.Services
+@inject EntityApi<FuelTypeDto, FuelTypeDto> Api
+@inject NavigationManager Nav
+@inject IJSRuntime Js
+
+<h3>Fuel Types</h3>
+
+<div class="d-flex mb-3">
+    <input class="form-control me-2" @bind="qp.Search" @bind:event="oninput" placeholder="Search…"/>
+    <button class="btn btn-outline-primary me-2" @onclick="OnSearch">Search</button>
+    <button class="btn btn-success ms-auto" @onclick='() => Nav.NavigateTo("/fueltypes/edit")'>
+        <i class="bi bi-plus-lg"></i> New
+    </button>
+</div>
+
+@if (isLoading)
+{
+    <em>Loading…</em>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th @onclick='() => Sort("Name")'>Name @Arrow("Name")</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var f in items)
+        {
+            <tr>
+                <td>@f.Name</td>
+                <td>
+                    <button class="btn btn-sm btn-primary me-1"
+                            @onclick='() => Nav.NavigateTo($"/fueltypes/edit/{f.Id}")'>Edit</button>
+                    <button class="btn btn-sm btn-danger"
+                            @onclick='() => Delete(f.Id, f.Name)'>Del</button>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    <Pagination TotalItems="total" Page="qp.Page" Size="qp.Size"
+                OnPageChanged="p => { qp.Page = p; _ = Load(); }" />
+}
+
+@code {
+    QueryParams qp = new();
+    IEnumerable<FuelTypeDto> items = Array.Empty<FuelTypeDto>();
+    int total; bool isLoading;
+
+    protected override async Task OnInitializedAsync() => await Load();
+    Task OnSearch()         { qp.Page = 1; return Load(); }
+    void Sort(string f)     { qp.Sort = qp.Sort == f ? f + "_desc" : f; qp.Page = 1; _ = Load(); }
+    MarkupString Arrow(string f)
+        => qp.Sort == f ? (MarkupString)"<i class='bi bi-caret-up-fill'></i>"
+        : qp.Sort == f + "_desc" ? (MarkupString)"<i class='bi bi-caret-down-fill'></i>" : default;
+
+    async Task Load()
+    {
+        isLoading = true;
+        var res = await Api.GetPagedAsync(qp);
+        items  = res?.Items  ?? items;
+        total  = res?.Total  ?? 0;
+        isLoading = false;
+    }
+
+    async Task Delete(int id, string name)
+    {
+        if (await Js.InvokeAsync<bool>("confirm", $"Delete «{name}»?"))
+        { await Api.DeleteAsync(id); await Load(); }
+    }
+}

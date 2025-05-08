@@ -1,0 +1,47 @@
+﻿@page "/colors/edit/{Id:int?}"
+@using Dealship.Shared
+@using Dealship.Client.Services
+@using Microsoft.AspNetCore.Components.Forms
+@inject EntityApi<ColorDto, ColorFormDto> Api
+@inject NavigationManager Nav
+
+<h3>@(Id is null ? "New Color" : "Edit Color")</h3>
+
+<EditForm Model="model" OnValidSubmit="Save">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <label class="form-label">Name</label>
+    <InputText class="form-control mb-3" @bind-Value="model.Name" />
+
+    <button class="btn btn-primary me-2" type="submit">Save</button>
+    <button class="btn btn-secondary" type="button"
+            @onclick="@(() => Nav.NavigateTo("/colors"))">
+        Cancel
+    </button>
+</EditForm>
+
+@code {
+    [Parameter] public int? Id { get; set; }
+
+    // ❶  Використовуємо MUTABLE ­-FormDto, а не immutable ColorDto
+    private ColorFormDto model = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id is int id)
+        {
+            var dto = await Api.GetByIdAsync(id);
+            if (dto is not null)             // переносимо значення у форму
+                model.Name = dto.Name;
+        }
+    }
+
+    private async Task Save()
+    {
+        if (Id is int id) await Api.UpdateAsync(id, model);
+        else await Api.CreateAsync(model);
+
+        Nav.NavigateTo("/colors");
+    }
+}

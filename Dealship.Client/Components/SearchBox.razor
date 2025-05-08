@@ -1,0 +1,19 @@
+﻿<!-- Components/SearchBox.razor -->
+<input class="form-control"
+       placeholder="Search…"
+       @bind="Value"
+       @bind:event="oninput"
+       @onkeydown="HandleEnter" />
+
+@code {
+    /* ------------ binding ------------ */
+    [Parameter, EditorRequired] public string Value { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public EventCallback<string> ValueChanged { get; set; }
+
+    /* ------------ зовнішня «пошукова» подія ------------ */
+    [Parameter, EditorRequired] public EventCallback OnSearch { get; set; }
+
+    /* натиснули <Enter> → запускаємо пошук */
+    private Task HandleEnter(KeyboardEventArgs e)
+        => e.Key == "Enter" ? OnSearch.InvokeAsync() : Task.CompletedTask;
+}

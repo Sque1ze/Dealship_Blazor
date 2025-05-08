@@ -1,0 +1,177 @@
+﻿@page "/cars/edit/{Id:int?}"
+
+@using Dealship.Shared
+@using Dealship.Client.Services
+@using Microsoft.AspNetCore.Components.Forms
+
+@inject CarApi Api
+@inject LookupCache Cache
+@inject NavigationManager Nav
+
+<h3>@(Id is null ? "New car" : "Edit car")</h3>
+
+<!-- ✅ закриваємо EditForm коректно та вказуємо enctype -->
+<EditForm Model="@model"
+          OnValidSubmit="HandleValid"
+          enctype="multipart/form-data">
+
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="row g-3">
+
+        <!-- Brand / Model / Year / Price / Mileage -->
+        <div class="col-md-6">
+            <label class="form-label">Brand</label>
+            <InputText class="form-control" @bind-Value="model.Brand" />
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Model</label>
+            <InputText class="form-control" @bind-Value="model.Model" />
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">Year</label>
+            <InputNumber class="form-control" @bind-Value="model.Year" />
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">Price</label>
+            <InputNumber class="form-control" step="0.01" @bind-Value="model.Price" />
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">Mileage</label>
+            <InputNumber class="form-control" @bind-Value="model.Mileage" />
+        </div>
+
+        <!-- Engine -->
+        <div class="col-md-4">
+            <label class="form-label">Engine</label>
+            <InputSelect class="form-select" @bind-Value="model.EngineId">
+                <option value="">— select —</option>
+                @foreach (var e in engines)
+                {
+                    <option value="@e.Id">@e.Type (@e.Volume)L</option>
+                }
+            </InputSelect>
+        </div>
+
+        <!-- Transmission -->
+        <div class="col-md-4">
+            <label class="form-label">Transmission</label>
+            <InputSelect class="form-select" @bind-Value="model.TransmissionId">
+                <option value="">— select —</option>
+                @foreach (var t in transmissions)
+                {
+                    <option value="@t.Id">@t.Type</option>
+                }
+            </InputSelect>
+        </div>
+
+        <!-- Fuel -->
+        <div class="col-md-4">
+            <label class="form-label">Fuel</label>
+            <InputSelect class="form-select" @bind-Value="model.FuelTypeId">
+                <option value="">— select —</option>
+                @foreach (var f in fuels)
+                {
+                    <option value="@f.Id">@f.Name</option>
+                }
+            </InputSelect>
+        </div>
+
+        <!-- Color -->
+        <div class="col-md-4">
+            <label class="form-label">Color</label>
+            <InputSelect class="form-select" @bind-Value="model.ColorId">
+                <option value="">— select —</option>
+                @foreach (var c in colors)
+                {
+                    <option value="@c.Id">@c.Name</option>
+                }
+            </InputSelect>
+        </div>
+
+        @* <!-- Image upload --> *@
+        @* <div class="col-12"> *@
+        @*     <label class="form-label">Photo</label> *@
+        @*     <InputFile OnChange="OnFileSelected" /> *@
+        @*     @if (imageName is not null) *@
+        @*     { *@
+        @*         <small class="text-secondary ms-2"> *@
+        @*             <i class="bi bi-image"></i> @imageName *@
+        @*         </small> *@
+        @*     } *@
+        @* </div> *@
+    </div>
+
+    <div class="mt-4">
+        <button class="btn btn-primary me-2" type="submit">Save</button>
+        <!-- ✅ правильні лапки, щоб не ламався Razor -->
+        <button class="btn btn-secondary" type="button"
+                @onclick='() => Nav.NavigateTo("/cars")'>
+            Cancel
+        </button>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter] public int? Id { get; set; }
+
+    private CarFormDto model = new();
+    private IBrowserFile? file;
+    private string? imageName;
+
+    private IEnumerable<EngineDto> engines = Array.Empty<EngineDto>();
+    private IEnumerable<TransmissionDto> transmissions = Array.Empty<TransmissionDto>();
+    private IEnumerable<FuelTypeDto> fuels = Array.Empty<FuelTypeDto>();
+    private IEnumerable<ColorDto> colors = Array.Empty<ColorDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // ----- довідники -----
+        engines = await Cache.Engines();
+        transmissions = await Cache.Transmissions();
+        fuels = await Cache.Fuels();          // назва методу => Fuels()
+        colors = await Cache.Colors();
+
+        // ----- редагування -----
+        if (Id is int id)
+        {
+            var dto = await Api.GetByIdAsync(id);
+            if (dto is not null)
+            {
+                model = new()
+                    {
+                        Brand = dto.Brand,
+                        Model = dto.Model,
+                        Year = dto.Year,
+                        Price = dto.Price,
+                        Mileage = dto.Mileage,
+                        EngineId = dto.EngineId,
+                        TransmissionId = dto.TransmissionId,
+                        FuelTypeId = dto.FuelTypeId,
+                        ColorId = dto.ColorId
+                    };
+            }
+        }
+    }
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        file = e.File;
+        imageName = file?.Name;
+    }
+
+    private async Task HandleValid()
+    {
+        if (Id is int id)
+            await Api.UpdateAsync(id, model, file);
+        else
+            await Api.CreateAsync(model, file);
+
+        Nav.NavigateTo("/cars");
+    }
+}

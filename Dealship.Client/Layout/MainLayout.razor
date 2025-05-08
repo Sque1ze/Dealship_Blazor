@@ -1,0 +1,36 @@
+﻿@inherits LayoutComponentBase
+
+<div class="d-flex min-vh-100">
+
+    <!-- SIDE-BAR --------------------------------------------------------->
+    <aside class="sidebar border-end bg-dark text-light">
+        <div class="d-flex flex-column h-100">
+
+            <!-- бренд + бургер -->
+            <div class="d-flex align-items-center px-3 py-2 border-bottom">
+                <span class="fs-5 fw-semibold flex-fill">Dealship</span>
+
+                <!-- показати кнопку тільки на <992 px  -->
+                <button class="btn btn-sm btn-outline-light d-lg-none"
+                        data-bs-toggle="collapse" data-bs-target="#navLinks">
+                    <i class="bi bi-list"></i>
+                </button>
+            </div>
+
+            <!-- навігаційні посилання -->
+            <NavMenu id="navLinks" class="collapse d-lg-block flex-grow-1" />
+
+            <!-- футер у сайдбарі (опц.) -->
+            <div class="small text-center text-secondary py-2">
+                © @DateTime.Now.Year
+            </div>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT ----------------------------------------------------->
+    <main class="flex-fill">
+        <div class="container-xl py-4">
+            @Body
+        </div>
+    </main>
+</div>

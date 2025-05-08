@@ -1,0 +1,126 @@
+﻿@page "/cars"
+@using Dealship.Shared
+@using Dealship.Client.Services
+@using Microsoft.AspNetCore.Components
+@using Microsoft.JSInterop
+
+@inject CarApi CarApi
+@inject IJSRuntime Js
+@inject NavigationManager Nav
+
+<PageTitle>Cars</PageTitle>
+<h3>Cars</h3>
+
+<div class="d-flex mb-3">
+    <input class="form-control me-2"
+           placeholder="Search…"
+           @bind="qp.Search"
+           @bind:event="oninput" />
+    <button class="btn btn-outline-primary me-2" @onclick="OnSearch">Search</button>
+    <button class="btn btn-success ms-auto" 
+            @onclick='() => Nav.NavigateTo("/cars/edit")'>
+        <i class="bi bi-plus-lg"></i> New
+    </button>
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center"><em>Loading…</em></div>
+}
+else
+{
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th @onclick='() => SortBy("Brand")'>Brand @SortIcon("Brand")</th>
+                <th @onclick='() => SortBy("Model")'>Model @SortIcon("Model")</th>
+                <th @onclick='() => SortBy("Year")'>Year @SortIcon("Year")</th>
+                <th @onclick='() => SortBy("Price")'>Price @SortIcon("Price")</th>
+                <th @onclick='() => SortBy("Mileage")'>Mileage @SortIcon("Mileage")</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var car in items)
+            {
+                <tr>
+                    <td>@car.Brand</td>
+                    <td>@car.Model</td>
+                    <td>@car.Year</td>
+                    <td>@car.Price</td>
+                    <td>@car.Mileage</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary me-1"
+                                @onclick='() => Nav.NavigateTo($"/cars/edit/{car.Id}")'>
+                            Edit
+                        </button>
+                        <button class="btn btn-sm btn-danger"
+                                @onclick='() => Delete(car.Id, car.Brand)'>
+                            Delete
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <Pagination TotalItems="total"
+                Page="qp.Page"
+                Size="qp.Size"
+                OnPageChanged="OnPageChanged" />
+}
+
+@code {
+    private QueryParams qp = new();
+    private IEnumerable<CarDto> items = Array.Empty<CarDto>();
+    private int total;
+    private bool isLoading;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        isLoading = true;
+        var res = await CarApi.GetListAsync(qp);
+        items = res?.Items ?? Array.Empty<CarDto>();
+        total = res?.Total ?? 0;
+        isLoading = false;
+    }
+
+    private Task OnSearch()
+    {
+        qp.Page = 1;
+        return Load();
+    }
+
+    private void SortBy(string field)
+    {
+        qp.Sort = qp.Sort == field ? field + "_desc" : field;
+        qp.Page = 1;
+        _ = Load();
+    }
+
+    private MarkupString SortIcon(string field)
+    {
+        if (qp.Sort == field)
+            return (MarkupString)"<i class=\"bi bi-caret-up-fill\"></i>";
+        if (qp.Sort == field + "_desc")
+            return (MarkupString)"<i class=\"bi bi-caret-down-fill\"></i>";
+        return default;
+    }
+
+    private async Task Delete(int id, string name)
+    {
+        if (await Js.InvokeAsync<bool>("confirm", $"Delete car «{name}»?"))
+        {
+            await CarApi.DeleteAsync(id);
+            await Load();
+        }
+    }
+
+    private void OnPageChanged(int p)
+    {
+        qp.Page = p;
+        _ = Load();
+    }
+}

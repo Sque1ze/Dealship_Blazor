@@ -1,0 +1,65 @@
+﻿@page "/colors"
+@using Dealship.Shared
+@using Dealship.Client.Services
+@inject EntityApi<ColorDto, ColorDto> Api
+@inject NavigationManager Nav
+@inject IJSRuntime Js
+
+<h3>Colors</h3>
+
+<div class="d-flex mb-3">
+    <input class="form-control me-2" placeholder="Search…" @bind="qp.Search" @bind:event="oninput" />
+    <button class="btn btn-outline-primary me-2" @onclick="OnSearch">Search</button>
+    <button class="btn btn-success ms-auto" @onclick='() => Nav.NavigateTo("/colors/edit")'>
+        <i class="bi bi-plus-lg"></i> New
+    </button>
+</div>
+
+@if (isLoading)
+{
+    <em>Loading…</em>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th @onclick='()=>Sort("Name")'>Name @Arrow("Name")</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var c in items)
+        {
+            <tr>
+                <td>@c.Name</td>
+                <td>
+                    <button class="btn btn-sm btn-primary me-1" @onclick='()=>Nav.NavigateTo($"/colors/edit/{c.Id}")'>Edit</button>
+                    <button class="btn btn-sm btn-danger" @onclick='()=>Delete(c.Id,c.Name)'>Del</button>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    <Pagination TotalItems="total" Page="qp.Page" Size="qp.Size" OnPageChanged="p=>{qp.Page=p;_=Load();}" />
+}
+
+@code{
+    QueryParams qp=new(); IEnumerable<ColorDto> items=Array.Empty<ColorDto>();
+    int total; bool isLoading;
+
+    protected override async Task OnInitializedAsync()=>await Load();
+    Task OnSearch(){qp.Page=1;return Load();}
+    void Sort(string f){qp.Sort=qp.Sort==f?f+"_desc":f;qp.Page=1;_=Load();}
+    MarkupString Arrow(string f)=> qp.Sort==f? (MarkupString)"<i class='bi bi-caret-up-fill'></i>"
+                                : qp.Sort==f+"_desc"? (MarkupString)"<i class='bi bi-caret-down-fill'></i>":default;
+
+    async Task Load(){isLoading=true;var res=await Api.GetPagedAsync(qp);
+        items=res?.Items??items; total=res?.Total??0; isLoading=false;}
+
+    async Task Delete(int id,string name){
+        if(await Js.InvokeAsync<bool>("confirm",$"Delete «{name}»?")){
+            await Api.DeleteAsync(id); await Load();
+        }
+    }
+}

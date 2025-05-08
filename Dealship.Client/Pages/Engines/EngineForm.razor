@@ -1,0 +1,58 @@
+﻿@page "/engines/edit/{Id:int?}"
+@using Dealship.Shared
+@using Dealship.Client.Services
+@using Microsoft.AspNetCore.Components.Forms
+@inject EntityApi<EngineDto, EngineFormDto> Api
+@inject NavigationManager Nav
+
+<h3>@(Id is null ? "New Engine" : "Edit Engine")</h3>
+
+<EditForm Model="model" OnValidSubmit="Save">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <label>Type</label>
+    <InputText class="form-control mb-2" @bind-Value="model.Type" />
+
+    <label>Volume&nbsp;(L)</label>
+    <InputNumber class="form-control mb-2" step="0.1" @bind-Value="model.Volume" />
+
+    <label>Horsepower</label>
+    <InputNumber class="form-control mb-3" @bind-Value="model.Horsepower" />
+
+    <button type="submit" class="btn btn-primary me-2">Save</button>
+    <button type="button" class="btn btn-secondary" @onclick="GoBack">Cancel</button>
+</EditForm>
+
+@code {
+    [Parameter] public int? Id { get; set; }
+
+    // ✅ MUTABLE форма, без конструктор-на-3-аргументи
+    private EngineFormDto model = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id is int id)
+        {
+            var dto = await Api.GetByIdAsync(id);
+            if (dto is not null)
+            {
+                model.Type = dto.Type;
+                model.Volume = dto.Volume;
+                model.Horsepower = dto.Horsepower;
+            }
+        }
+    }
+
+    private async Task Save()
+    {
+        if (Id is int id)
+            await Api.UpdateAsync(id, model);
+        else
+            await Api.CreateAsync(model);
+
+        GoBack();
+    }
+
+    private void GoBack() => Nav.NavigateTo("/engines");
+}

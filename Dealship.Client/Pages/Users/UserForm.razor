@@ -1,0 +1,61 @@
+﻿@page "/users/edit/{Id:int?}"
+@using Dealship.Shared
+@using Dealship.Client.Services
+@using Microsoft.AspNetCore.Components.Forms
+@inject EntityApi<UserDto, UserFormDto> Api
+@inject NavigationManager Nav
+
+<h3>@(Id is null ? "New User" : "Edit User")</h3>
+
+<EditForm Model="model" OnValidSubmit="Save">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <label>Full Name</label>
+    <InputText class="form-control mb-2" @bind-Value="model.FullName" />
+
+    <label>Email</label>
+    <InputText class="form-control mb-2" @bind-Value="model.Email" />
+
+    <label>Role</label>
+    <InputSelect class="form-select mb-3" @bind-Value="model.Role">
+        <option value="Admin">Admin</option>
+        <option value="Client">Client</option>
+    </InputSelect>
+
+    <button type="submit" class="btn btn-primary me-2">Save</button>
+    <button type="button" class="btn btn-secondary" @onclick="GoBack">Cancel</button>
+</EditForm>
+
+@code {
+    [Parameter] public int? Id { get; set; }
+
+    // ✅ MUTABLE  форма — без init-помилок
+    private UserFormDto model = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id is int id)
+        {
+            var dto = await Api.GetByIdAsync(id);
+            if (dto is not null)
+            {
+                model.FullName = dto.FullName;
+                model.Email = dto.Email;
+                model.Role = dto.Role;
+            }
+        }
+    }
+
+    private async Task Save()
+    {
+        if (Id is int id)
+            await Api.UpdateAsync(id, model);
+        else
+            await Api.CreateAsync(model);
+
+        GoBack();
+    }
+
+    private void GoBack() => Nav.NavigateTo("/users");
+}

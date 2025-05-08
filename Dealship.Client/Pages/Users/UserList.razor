@@ -1,0 +1,54 @@
+﻿@page "/users"
+@using Dealship.Shared
+@using Dealship.Client.Services
+@inject EntityApi<UserDto,UserDto> Api
+@inject NavigationManager Nav
+@inject IJSRuntime Js
+
+<h3>Users</h3>
+
+<div class="d-flex mb-3">
+    <input class="form-control me-2" @bind="qp.Search" @bind:event="oninput" placeholder="Search…"/>
+    <button class="btn btn-outline-primary me-2" @onclick="OnSearch">Search</button>
+    <button class="btn btn-success ms-auto" @onclick='() => Nav.NavigateTo("/users/edit")'>
+        <i class="bi bi-plus-lg"></i> New
+    </button>
+</div>
+
+@if(isLoading){<em>Loading…</em>}
+else{
+<table class="table">
+<thead>
+  <tr>
+    <th @onclick='()=>Sort("FullName")'>Name @Arrow("FullName")</th>
+    <th @onclick='()=>Sort("Email")'>Email @Arrow("Email")</th>
+    <th @onclick='()=>Sort("Role")'>Role @Arrow("Role")</th>
+    <th></th>
+  </tr>
+</thead>
+<tbody>
+@foreach(var u in items){
+  <tr>
+    <td>@u.FullName</td><td>@u.Email</td><td>@u.Role</td>
+    <td>
+      <button class="btn btn-sm btn-primary me-1"
+              @onclick='()=>Nav.NavigateTo($"/users/edit/{u.Id}")'>Edit</button>
+      <button class="btn btn-sm btn-danger"
+              @onclick='()=>Delete(u.Id,u.FullName)'>Del</button>
+    </td>
+  </tr>
+}
+</tbody></table>
+<Pagination TotalItems="total" Page="qp.Page" Size="qp.Size"
+            OnPageChanged="p=>{qp.Page=p;_=Load();}" />}
+@code{
+  QueryParams qp=new(); IEnumerable<UserDto> items=Array.Empty<UserDto>();
+  int total; bool isLoading;
+  protected override async Task OnInitializedAsync()=>await Load();
+  Task OnSearch(){qp.Page=1;return Load();}
+  void Sort(string f){qp.Sort=qp.Sort==f?f+"_desc":f;qp.Page=1;_=Load();}
+  MarkupString Arrow(string f)=> qp.Sort==f?(MarkupString)"<i class='bi bi-caret-up-fill'></i>"
+      :qp.Sort==f+"_desc"?(MarkupString)"<i class='bi bi-caret-down-fill'></i>":default;
+  async Task Load(){isLoading=true;var r=await Api.GetPagedAsync(qp);items=r?.Items??items;total=r?.Total??0;isLoading=false;}
+  async Task Delete(int id,string n){if(await Js.InvokeAsync<bool>("confirm",$"Delete «{n}»?")){await Api.DeleteAsync(id);await Load();}}
+}

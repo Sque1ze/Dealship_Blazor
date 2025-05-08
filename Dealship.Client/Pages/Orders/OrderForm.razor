@@ -1,0 +1,77 @@
+﻿@page "/orders/edit/{Id:int?}"
+@using Dealship.Shared
+@using Dealship.Client.Services
+@using Microsoft.AspNetCore.Components.Forms
+@inject EntityApi<OrderDto, OrderFormDto> Api
+@inject LookupCache LookupCache
+@inject NavigationManager Nav
+
+<h3>@(Id is null ? "New Order" : "Edit Order")</h3>
+
+<EditForm Model="model" OnValidSubmit="Save">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <label>Customer</label>
+    <InputSelect class="form-select mb-2" @bind-Value="model.CustomerId">
+        <option value="">— select —</option>
+        @foreach (var c in customers)
+        {
+            <option value="@c.Id">@c.FullName</option>
+        }
+    </InputSelect>
+
+    <label>Car</label>
+    <InputSelect class="form-select mb-2" @bind-Value="model.CarId">
+        <option value="">— select —</option>
+        @foreach (var car in cars)
+        {
+            <option value="@car.Id">@car.Brand&nbsp;@car.Model&nbsp;(@car.Year)</option>
+        }
+    </InputSelect>
+
+    <label>Date</label>
+    <InputDate class="form-control mb-3" @bind-Value="model.OrderDate" />
+
+    <button type="submit" class="btn btn-primary me-2">Save</button>
+    <button type="button" class="btn btn-secondary" @onclick="GoBack">Cancel</button>
+</EditForm>
+
+@code {
+    [Parameter] public int? Id { get; set; }
+
+    // ✅ MUTABLE форма, більше жодних ctor-3 помилок
+    private OrderFormDto model = new();
+
+    private IEnumerable<CustomerDto> customers = Array.Empty<CustomerDto>();
+    private IEnumerable<CarDto> cars = Array.Empty<CarDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        customers = await LookupCache.Customers();
+        cars = await LookupCache.Cars();
+
+        if (Id is int id)
+        {
+            var dto = await Api.GetByIdAsync(id);
+            if (dto is not null)
+            {
+                model.CustomerId = dto.CustomerId;
+                model.CarId = dto.CarId;
+                model.OrderDate = dto.OrderDate;
+            }
+        }
+    }
+
+    private async Task Save()
+    {
+        if (Id is int id)
+            await Api.UpdateAsync(id, model);
+        else
+            await Api.CreateAsync(model);
+
+        GoBack();
+    }
+
+    private void GoBack() => Nav.NavigateTo("/orders");
+}

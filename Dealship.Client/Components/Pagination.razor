@@ -1,0 +1,42 @@
+﻿@* Pagination.razor — більше **без** @typeparam *@
+<ul class="pagination justify-content-center my-3">
+
+    <li class="page-item @(Page == 1 ? "disabled" : null)">
+        <button class="page-link" @onclick="() => Change(Page - 1)">
+            &laquo;
+        </button>
+    </li>
+
+    @for (var p = 1; p <= Pages; p++)
+    {
+        <li class="page-item @(p == Page ? "active" : null)">
+            <button class="page-link" @onclick="() => Change(p)">
+                @p
+            </button>
+        </li>
+    }
+
+    <li class="page-item @(Page == Pages ? "disabled" : null)">
+        <button class="page-link" @onclick="() => Change(Page + 1)">
+            &raquo;
+        </button>
+    </li>
+
+</ul>
+
+@code
+{
+    [Parameter, EditorRequired] public int TotalItems { get; set; }
+    [Parameter, EditorRequired] public int Page { get; set; } = 1;
+    [Parameter, EditorRequired] public int Size { get; set; } = 10;
+    [Parameter, EditorRequired] public EventCallback<int> OnPageChanged { get; set; }
+
+    private int Pages => (int)Math.Ceiling((double)TotalItems / Size);
+
+    private async Task Change(int newPage)
+    {
+        newPage = Math.Clamp(newPage, 1, Pages);
+        if (newPage != Page)
+            await OnPageChanged.InvokeAsync(newPage);
+    }
+}

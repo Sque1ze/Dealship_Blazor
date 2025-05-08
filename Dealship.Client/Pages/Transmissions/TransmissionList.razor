@@ -1,0 +1,42 @@
+﻿@page "/transmissions"
+@using Dealship.Shared
+@using Dealship.Client.Services
+@inject EntityApi<TransmissionDto,TransmissionDto> Api
+@inject NavigationManager Nav
+@inject IJSRuntime Js
+
+<h3>Transmissions</h3>
+
+<div class="d-flex mb-3">
+    <input class="form-control me-2" @bind="qp.Search" @bind:event="oninput" placeholder="Search…" />
+    <button class="btn btn-outline-primary me-2" @onclick="()=>{qp.Page=1;_=Load();}">Search</button>
+    <button class="btn btn-success ms-auto" @onclick='()=>Nav.NavigateTo("/transmissions/edit")'><i class="bi bi-plus-lg"></i> New</button>
+</div>
+
+@if(isLoading){<em>Loading…</em>}
+else{
+<table class="table">
+    <thead><tr><th @onclick='()=>Sort("Type")'>Type @Arrow("Type")</th><th></th></tr></thead>
+    <tbody>
+    @foreach(var t in items){
+        <tr>
+            <td>@t.Type</td>
+            <td>
+                <button class="btn btn-sm btn-primary me-1" @onclick='()=>Nav.NavigateTo($"/transmissions/edit/{t.Id}")'>Edit</button>
+                <button class="btn btn-sm btn-danger" @onclick='()=>Delete(t.Id,t.Type)'>Del</button>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+<Pagination TotalItems="total" Page="qp.Page" Size="qp.Size" OnPageChanged="p=>{qp.Page=p;_=Load();}" />}
+@code{
+    QueryParams qp=new(); IEnumerable<TransmissionDto> items=Array.Empty<TransmissionDto>();
+    int total; bool isLoading;
+    protected override async Task OnInitializedAsync()=>await Load();
+    async Task Load(){isLoading=true; var res=await Api.GetPagedAsync(qp); items=res?.Items??items; total=res?.Total??0; isLoading=false;}
+    void Sort(string f){qp.Sort=qp.Sort==f?f+"_desc":f; qp.Page=1; _=Load();}
+    MarkupString Arrow(string f)=> qp.Sort==f?(MarkupString)"<i class='bi bi-caret-up-fill'></i>"
+        : qp.Sort==f+"_desc"?(MarkupString)"<i class='bi bi-caret-down-fill'></i>":default;
+    async Task Delete(int id,string type){if(await Js.InvokeAsync<bool>("confirm",$"Delete «{type}»?")){await Api.DeleteAsync(id);await Load();}}
+}
